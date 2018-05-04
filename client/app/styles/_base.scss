@@ -245,13 +245,11 @@ a {
   }
 
   &-label, .pause-text {
-    text-transform: uppercase;
     margin: 0 0.25em;
   }
 
   &-versionupdate {
     margin-right: 0.5em;
-    text-transform: uppercase;
   }
 
   &-tools {
@@ -319,7 +317,6 @@ a {
 
     &-label {
       font-size: .8rem;
-      text-transform: uppercase;
     }
 
   }
@@ -328,7 +325,6 @@ a {
     &-item {
       &-label {
         font-size: .7rem;
-        text-transform: uppercase;
       }
     }
   }
@@ -647,7 +643,6 @@ a {
   }
 
   &-more {
-    text-transform: uppercase;
     font-size: 0.7em;
     color: $color-turquoise;
     margin-top: -2px;
@@ -717,7 +712,6 @@ a {
         span {
           font-size: 1em;
           margin-left: 0;
-          text-transform: uppercase;
         }
       }
 
@@ -777,7 +771,6 @@ a {
     &-more {
       @extend .btn-opacity;
       padding: 0 2px;
-      text-transform: uppercase;
       cursor: pointer;
       font-size: 60%;
       font-weight: bold;
@@ -836,7 +829,6 @@ a {
       margin: 16px 0;
 
       &-header {
-        text-transform: uppercase;
         font-size: 90%;
         color: $text-tertiary-color;
         padding: 4px 0;
@@ -878,7 +870,6 @@ a {
 
         &-label {
           color: $text-secondary-color;
-          text-transform: uppercase;
           font-size: 60%;
         }
       }
@@ -893,7 +884,6 @@ a {
 
       &-label {
         color: $text-secondary-color;
-        text-transform: uppercase;
         font-size: 80%;
 
         .fa {
@@ -920,10 +910,6 @@ a {
       display: flex;
       color: inherit;
 
-      .label {
-        text-transform: uppercase;
-      }
-
       .node-details-health-item {
         width: auto;
       }
@@ -942,7 +928,6 @@ a {
         color: $text-secondary-color;
         padding: 0 0.5em 0 0;
         white-space: nowrap;
-        text-transform: uppercase;
         font-size: 80%;
 
         &::after {
@@ -975,7 +960,6 @@ a {
         color: $text-secondary-color;
         padding: 0 0.5em 0 0;
         white-space: nowrap;
-        text-transform: uppercase;
         font-size: 80%;
 
         &::after {
@@ -1015,7 +999,6 @@ a {
     }
 
     &-header {
-      text-transform: uppercase;
       color: $text-tertiary-color;
       font-size: 90%;
       text-align: right;
@@ -1194,7 +1177,6 @@ a {
     font-weight: bold;
     padding-right: 20px;
     text-align: right;
-    text-transform: uppercase;
   }
 }
 
@@ -1294,7 +1276,6 @@ a {
 
         font-size: 0.8em;
         font-weight: bold;
-        text-transform: uppercase;
 
         &:hover {
           opacity: 1;
@@ -1346,7 +1327,6 @@ a {
     }
 
     .link {
-      text-transform: uppercase;
       font-weight: bold;
       cursor: pointer;
       float: right;
@@ -1375,7 +1355,6 @@ a {
   padding: 0px 0;
   margin-top: 4px;
   text-align: right;
-  text-transform: uppercase;
   cursor: pointer;
   color: $text-secondary-color;
   font-size: 90%;
@@ -1392,7 +1371,6 @@ a {
   margin-right: 0.5em;
 
   &-label {
-    text-transform: uppercase;
     margin-right: 0.25em;
   }
 
@@ -1422,7 +1400,6 @@ a {
 }
 
 .status {
-  text-transform: uppercase;
   padding: 2px 12px;
   border-radius: $border-radius;
   color: $text-secondary-color;
@@ -1510,7 +1487,6 @@ a {
 
   &-action {
     background-color: transparent;
-    text-transform: uppercase;
 
     &-selected, &:not([disabled]):hover {
       background-color: $background-darker-secondary-color;
@@ -1677,7 +1653,6 @@ a {
 
     &-hint {
       font-size: 0.8rem;
-      text-transform: uppercase;
       transition: opacity 0.3s 0.5s $base-ease;
       opacity: 1;
     }
@@ -1810,7 +1785,6 @@ a {
 
     h2 {
       margin: 0;
-      text-transform: uppercase;
       font-size: 125%;
     }
   }
@@ -1844,7 +1818,6 @@ a {
     align-items: stretch;
 
     h2 {
-      text-transform: uppercase;
       line-height: 150%;
       font-size: 125%;
       color: $color-primary-lavender;
@@ -1853,7 +1826,6 @@ a {
     }
 
     h3 {
-      text-transform: uppercase;
       font-size: 90%;
       color: $color-primary-lavender;
       padding: 4px 0;
@@ -1917,7 +1889,6 @@ a {
     flex-direction: column;
 
     &-current-topology {
-      text-transform: uppercase;
       color: $color-primary-lavender;
     }
 
