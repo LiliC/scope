@@ -2,6 +2,8 @@ package cri
 
 import (
 	"fmt"
+
+	criClient "github.com/weaveworks/scope/runtime"
 )
 
 // Vars exported for testing.
