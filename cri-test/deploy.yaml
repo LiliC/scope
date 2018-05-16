@@ -1,0 +1,44 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube-pod-exporter
+spec:
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: kube-pod-exporter
+      name: kube-pod-exporter
+    spec:
+      serviceAccountName: default 
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+      containers:
+      - image: docker.io/lilic/scope-cri:latest
+        args:
+          - "--container-runtime-endpoint=unix:///var/run/dockershim.sock"
+        imagePullPolicy: Always
+        name: kube-pod-exporter
+        resources:
+          requests:
+            memory: 30Mi
+            cpu: 100m
+          limits:
+            memory: 50Mi
+            cpu: 200m
+        volumeMounts:
+        - name: cri-endpoint
+          mountPath: /var/run/dockershim.sock
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+      volumes:
+      - name: cri-endpoint
+        hostPath:
+          path: /var/run/dockershim.sock
+          type: Socket
+
