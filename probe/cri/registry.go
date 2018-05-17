@@ -19,7 +19,7 @@ type Registry interface {
 	LockedPIDLookup(f func(func(int) Container))
 	WalkContainers(f func(Container))
 	WalkImages(f func(runtime.Image))
-	WalkNetworks(f func(docker_client.Network))
+	//WalkNetworks(f func(docker_client.Network))
 	WatchContainerUpdates(ContainerUpdateWatcher)
 	GetContainer(string) (Container, bool)
 	GetContainerByPrefix(string) (Container, bool)
@@ -41,12 +41,13 @@ type registry struct {
 	noCommandLineArguments bool
 	noEnvironmentVariables bool
 
-	watchers   []ContainerUpdateWatcher
+	watchers []ContainerUpdateWatcher
+
 	containers *radix.Tree
 	// TODO: implement this in container.go
 	containersByPID map[int]Container
 	images          map[string]criClient.Image
-	networks        []docker_client.Network
+	networks        nil
 	pipeIDToexecID  map[string]string
 }
 
@@ -137,6 +138,7 @@ func (r *registry) loop() {
 		time.Sleep(r.interval)
 	}
 }
+
 func (r *registry) listenForEvents() bool {
 	// First we empty the store lists.
 	// This ensure any containers that went away in between calls to
@@ -146,6 +148,8 @@ func (r *registry) listenForEvents() bool {
 	// Next, start listening for events.  We do this before fetching
 	// the list of containers so we don't miss containers created
 	// after listing but before listening for events.
+
+	/* TODO: implemnet listening?
 	// TODO: left here ----
 	events := make(chan *docker_client.APIEvents)
 	if err := r.client.AddEventListener(events); err != nil {
@@ -157,6 +161,7 @@ func (r *registry) listenForEvents() bool {
 			log.Errorf("cri registry: %s", err)
 		}
 	}()
+
 
 	if err := r.updateContainers(); err != nil {
 		log.Errorf("cri registry: %s", err)
@@ -172,22 +177,30 @@ func (r *registry) listenForEvents() bool {
 		log.Errorf("cri registry: %s", err)
 		return true
 	}
+	*/
 
 	otherUpdates := time.Tick(r.interval)
 	for {
 		select {
-		case event, ok := <-events:
-			if !ok {
-				log.Errorf("cri registry: event listener unexpectedly disconnected")
+		/*
+			case event, ok := <-events:
+				if !ok {
+					log.Errorf("cri registry: event listener unexpectedly disconnected")
+					return true
+				}
+				r.handleEvent(event)
+		*/
+		case <-otherUpdates:
+			if err := r.updateContainers(); err != nil {
+				log.Errorf("cri registry: %s", err)
 				return true
 			}
-			r.handleEvent(event)
 
-		case <-otherUpdates:
 			if err := r.updateImages(); err != nil {
 				log.Errorf("cri registry: %s", err)
 				return true
 			}
+			// TODO: CNI?
 			if err := r.updateNetworks(); err != nil {
 				log.Errorf("cri registry: %s", err)
 				return true
@@ -227,20 +240,21 @@ func (r *registry) reset() {
 }
 
 func (r *registry) updateContainers() error {
-	apiContainers, err := r.client.ListContainersRequest(docker_client.ListContainersOptions{All: true})
+	// apiContainers, err := r.client.ListContainersRequest(docker_client.ListContainersOptions{All: true})
+	containers, err := r.client.ListContainers(criRuntime.ListContainersRequest{})
 	if err != nil {
 		return err
 	}
 
-	for _, apiContainer := range apiContainers {
-		r.updateContainerState(apiContainer.ID, nil)
+	for _, container := range containers {
+		r.updateContainerState(container.ID, nil)
 	}
 
 	return nil
 }
 
 func (r *registry) updateImages() error {
-	images, err := r.client.ListImages(docker_client.ListImagesOptions{})
+	images, err := r.client.ListImages(criRuntime.ListImagesRequest{})
 	if err != nil {
 		return err
 	}
@@ -255,14 +269,18 @@ func (r *registry) updateImages() error {
 	return nil
 }
 
+// TODO: CRI does not do network
+// TODO: figure out a way to do this - via CNI lib?
 func (r *registry) updateNetworks() error {
-	networks, err := r.client.ListNetworks()
-	if err != nil {
-		return err
-	}
+	/*
+		networks, err := r.client.ListNetworks()
+		if err != nil {
+			return err
+		}
+	*/
 
 	r.Lock()
-	r.networks = networks
+	r.networks = nil
 	r.Unlock()
 
 	return nil
@@ -289,22 +307,15 @@ func (r *registry) updateContainerState(containerID string, intendedState *strin
 	r.Lock()
 	defer r.Unlock()
 
-	dockerContainer, err := r.client.InspectContainer(containerID)
+	container, err := r.client.ContainerStatus(criRuntime.ContainerStatusRequest{id: containerId})
 	if err != nil {
-		// Don't spam the logs if the container was short lived
-		if _, ok := err.(*docker_client.NoSuchContainer); !ok {
-			log.Errorf("Error processing event for container %s: %v", containerID, err)
-			return
-		}
-
 		// Container doesn't exist anymore, so lets stop and remove it
-		c, ok := r.containers.Get(containerID)
-		if !ok {
-			return
-		}
-		container := c.(Container)
 
-		r.containers.Delete(containerID)
+		// We have to first stop the container and remove it afterwards
+		r.client.StopContainer(criClient.StopContainerRequest{id: conainerID})
+
+		r.client.RemoveContainer(criClient.RemoveContainerRequest{id: containerID})
+
 		delete(r.containersByPID, container.PID())
 		if r.collectStats {
 			container.StopGatheringStats()
@@ -431,6 +442,7 @@ func (r *registry) WalkImages(f func(docker_client.APIImages)) {
 	})
 }
 
+/*
 // WalkNetworks runs f on every network the registry knows of.
 func (r *registry) WalkNetworks(f func(docker_client.Network)) {
 	r.RLock()
@@ -440,6 +452,7 @@ func (r *registry) WalkNetworks(f func(docker_client.Network)) {
 		f(network)
 	}
 }
+*/
 
 // ImageNameWithoutVersion splits the image name apart, returning the name
 // without the version, if possible
@@ -450,4 +463,10 @@ func ImageNameWithoutVersion(name string) string {
 	}
 	parts = strings.SplitN(name, ":", 2)
 	return parts[0]
+}
+
+// TODO: listen for events
+// Implement!
+func (r *registry) addEventListener(events string) error {
+	fmt.Println("listening events...")
 }
