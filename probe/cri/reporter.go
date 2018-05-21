@@ -1,9 +1,7 @@
 package cri
 
 import (
-	"fmt"
-
-	"github.com/weaveworks/scope/"
+//"github.com/weaveworks/scope/"
 )
 
 // Keys for use in Node

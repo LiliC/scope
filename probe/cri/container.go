@@ -2,8 +2,11 @@ package cri
 
 import (
 	"fmt"
+	"net"
+	"sync"
 
-	"github.com/brancz/kube-pod-exporter/runtime"
+	"github.com/weaveworks/scope/report"
+	runtime "github.com/weaveworks/scope/runtime"
 )
 
 // Container represents a CRI container
@@ -27,15 +30,20 @@ type Container interface {
 
 type container struct {
 	sync.RWMutex
-	container              *runtime.Container
+	container              *Container
 	stopStats              chan<- bool
-	latestStats            runtime.Stats
-	pendingStats           [60]runtime.Stats
+	latestStats            runtime.ContainerStats
+	pendingStats           [60]runtime.ContainerStats
 	numPending             int
 	hostID                 string
 	baseNode               report.Node
 	noCommandLineArguments bool
 	noEnvironmentVariables bool
+}
+
+// StatsGatherer gathers container stats
+type StatsGatherer interface {
+	Stats(runtime.ContainerStatsRequest) error
 }
 
 // NewContainer creates a new Container

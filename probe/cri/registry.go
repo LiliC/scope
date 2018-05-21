@@ -2,7 +2,14 @@ package cri
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/armon/go-radix"
+
+	"github.com/weaveworks/scope/probe/controls"
+	"github.com/weaveworks/scope/report"
 	criClient "github.com/weaveworks/scope/runtime"
 )
 
@@ -18,12 +25,12 @@ type Registry interface {
 	Stop()
 	LockedPIDLookup(f func(func(int) Container))
 	WalkContainers(f func(Container))
-	WalkImages(f func(runtime.Image))
+	WalkImages(f func(criClient.Image))
 	//WalkNetworks(f func(docker_client.Network))
 	WatchContainerUpdates(ContainerUpdateWatcher)
 	GetContainer(string) (Container, bool)
 	GetContainerByPrefix(string) (Container, bool)
-	GetContainerImage(string) (runtime.Image, bool)
+	GetContainerImage(string) (criClient.Image, bool)
 }
 
 // ContainerUpdateWatcher is the type of functions that get called when containers are updated.
@@ -34,7 +41,7 @@ type registry struct {
 	quit                   chan chan struct{}
 	interval               time.Duration
 	collectStats           bool
-	client                 criClient.RunttimeServiceClient
+	client                 criClient.RuntimeServiceClient
 	pipes                  controls.PipeClient
 	hostID                 string
 	handlerRegistry        *controls.HandlerRegistry
@@ -47,8 +54,8 @@ type registry struct {
 	// TODO: implement this in container.go
 	containersByPID map[int]Container
 	images          map[string]criClient.Image
-	networks        nil
 	pipeIDToexecID  map[string]string
+	networks        map[string]string
 }
 
 // TODO: criClient.RuntimeServiceClient
@@ -241,7 +248,7 @@ func (r *registry) reset() {
 
 func (r *registry) updateContainers() error {
 	// apiContainers, err := r.client.ListContainersRequest(docker_client.ListContainersOptions{All: true})
-	containers, err := r.client.ListContainers(criRuntime.ListContainersRequest{})
+	containers, err := r.client.ListContainers(criClient.ListContainersRequest{})
 	if err != nil {
 		return err
 	}
@@ -254,7 +261,7 @@ func (r *registry) updateContainers() error {
 }
 
 func (r *registry) updateImages() error {
-	images, err := r.client.ListImages(criRuntime.ListImagesRequest{})
+	images, err := r.client.ListImages(criClient.ListImagesRequest{})
 	if err != nil {
 		return err
 	}
@@ -307,7 +314,7 @@ func (r *registry) updateContainerState(containerID string, intendedState *strin
 	r.Lock()
 	defer r.Unlock()
 
-	container, err := r.client.ContainerStatus(criRuntime.ContainerStatusRequest{id: containerId})
+	container, err := r.client.ContainerStatus(criClient.ContainerStatusRequest{id: containerId})
 	if err != nil {
 		// Container doesn't exist anymore, so lets stop and remove it
 
