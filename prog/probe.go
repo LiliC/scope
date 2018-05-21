@@ -24,6 +24,7 @@ import (
 	"github.com/weaveworks/scope/probe/appclient"
 	"github.com/weaveworks/scope/probe/awsecs"
 	"github.com/weaveworks/scope/probe/controls"
+	"github.com/weaveworks/scope/probe/cri"
 	"github.com/weaveworks/scope/probe/docker"
 	"github.com/weaveworks/scope/probe/endpoint"
 	"github.com/weaveworks/scope/probe/host"
@@ -212,6 +213,36 @@ func probeMain(flags probeFlags, targets []appclient.Target) {
 		}
 	}
 
+	if flags.criEnabled {
+		// Don't add the bridge in Kubernetes since container IPs are global and
+		// shouldn't be scoped
+		/*
+			if !flags.kubernetesEnabled {
+				if err := report.AddLocalBridge(flags.dockerBridge); err != nil {
+					log.Errorf("Docker: problem with bridge %s: %v", flags.dockerBridge, err)
+				}
+			}
+		*/
+		options := cri.RegistryOptions{
+			Interval:               flags.CRIInterval,
+			Pipes:                  clients,
+			CollectStats:           true,
+			HostID:                 hostID,
+			HandlerRegistry:        handlerRegistry,
+			NoCommandLineArguments: flags.noCommandLineArguments,
+			NoEnvironmentVariables: flags.noEnvironmentVariables,
+		}
+
+		if registry, err := cri.NewRegistry(options); err == nil {
+			defer registry.Stop()
+			if flags.procEnabled {
+				p.AddTagger(cri.NewTagger(registry, processCache))
+			}
+			p.AddReporter(cri.NewReporter(registry, hostID, probeID, p))
+		} else {
+			log.Errorf("CRI: failed to start registry: %v", err)
+		}
+	}
 	if flags.kubernetesEnabled {
 		if client, err := kubernetes.NewClient(flags.kubernetesClientConfig); err == nil {
 			defer client.Stop()
