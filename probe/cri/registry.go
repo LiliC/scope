@@ -293,6 +293,7 @@ func (r *registry) updateNetworks() error {
 	return nil
 }
 
+/*
 func (r *registry) handleEvent(event *docker_client.APIEvents) {
 	// TODO: Send shortcut reports on networks being created/destroyed?
 	switch event.Status {
@@ -300,7 +301,7 @@ func (r *registry) handleEvent(event *docker_client.APIEvents) {
 		r.updateContainerState(event.ID, stateAfterEvent(event.Status))
 	}
 }
-
+*/
 func stateAfterEvent(event string) *string {
 	switch event {
 	case DestroyEvent:
@@ -426,7 +427,7 @@ func (r *registry) GetContainerByPrefix(prefix string) (Container, bool) {
 	return nil, false
 }
 
-func (r *registry) GetContainerImage(id string) (docker_client.APIImages, bool) {
+func (r *registry) GetContainerImage(id string) (criClient.Image, bool) {
 	r.RLock()
 	defer r.RUnlock()
 	image, ok := r.images[id]
@@ -435,7 +436,7 @@ func (r *registry) GetContainerImage(id string) (docker_client.APIImages, bool) 
 
 // WalkImages runs f on every image of running containers the registry
 // knows of.  f may be run on the same image more than once.
-func (r *registry) WalkImages(f func(docker_client.APIImages)) {
+func (r *registry) WalkImages(f func([]criClient.Image)) {
 	r.RLock()
 	defer r.RUnlock()
 

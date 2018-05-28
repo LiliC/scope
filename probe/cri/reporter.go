@@ -1,7 +1,14 @@
 package cri
 
 import (
-//"github.com/weaveworks/scope/"
+	"net"
+	"strings"
+
+	humanize "github.com/dustin/go-humanize"
+
+	"github.com/weaveworks/scope/probe"
+	"github.com/weaveworks/scope/probe/host"
+	"github.com/weaveworks/scope/report"
 )
 
 // Keys for use in Node
