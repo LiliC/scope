@@ -56,28 +56,31 @@ func NewContainer(c *runtime.Container, hostID string, noCommandLineArguments bo
 }
 
 func (c *container) ID() string {
-	return c.container.ID
+	// runtime.CreateContainerRequest.PodSandboxId
+	return c.container.Id
 }
 
 func (c *container) Image() string {
+
 	return trimImageID(c.container.Image)
 }
 
+// TODO: no PID
 func (c *container) PID() int {
-	return c.container.State.Pid
+	return 1
 }
 
 func (c *container) Hostname() string {
-	if c.container.Config.Domainname == "" {
+	if c.container.PodSandboxConfig.DnsConfig == "" {
 		return c.container.Config.Hostname
 	}
 
-	return fmt.Sprintf("%s.%s", c.container.Config.Hostname,
-		c.container.Config.Domainname)
+	return fmt.Sprintf("%s.%s", c.container.PodSandboxConfig.Hostname,
+		c.container.PodSandboxConfig.DnsConfig)
 }
 
 func (c *container) HasTTY() bool {
-	return c.container.Config.Tty
+	return c.container.AttachRequest.Tty
 }
 
 func (c *container) State() string {
