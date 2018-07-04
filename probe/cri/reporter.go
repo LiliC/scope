@@ -50,11 +50,10 @@ func (r *Reporter) containerImageTopology() (report.Topology, error) {
 
 	for _, _ = range resp.Containers {
 		latests := map[string]string{
-			docker.ImageID:          "sha256:b938u3ur839yr3",
+			docker.ImageID:          c.ImageRef,
 			docker.ImageSize:        "10MB",
 			docker.ImageVirtualSize: "10MB",
-			docker.ImageName:        "prom",
-			//docker.ImageTag:         "latest",
+			docker.ImageName:        c.Image.Image,
 		}
 		nodeID := report.MakeContainerImageNodeID(latests[docker.ImageID])
 		node := report.MakeNodeWith(nodeID, latests)
