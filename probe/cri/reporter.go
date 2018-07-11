@@ -42,13 +42,13 @@ func (r *Reporter) containerImageTopology() (report.Topology, error) {
 		WithMetadataTemplates(docker.ContainerImageMetadataTemplates).
 		WithTableTemplates(docker.ContainerImageTableTemplates)
 
-	// walk the line...
-	resp, err := r.cri.ListContainers(context.TODO(), nil)
+	resp, err := r.cri.ListContainers(context.TODO(), &criClient.ListContainersRequest{})
 	if err != nil {
 		return result, err
 	}
 
-	for _, _ = range resp.Containers {
+	for _, c := range resp.Containers {
+		fmt.Println(c)
 		latests := map[string]string{
 			docker.ImageID:          c.ImageRef,
 			docker.ImageSize:        "10MB",
