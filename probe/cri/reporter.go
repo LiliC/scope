@@ -2,6 +2,7 @@ package cri
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/weaveworks/scope/probe/docker"
 	"github.com/weaveworks/scope/report"
@@ -18,7 +19,7 @@ func NewReporter(cri criClient.RuntimeServiceClient) *Reporter {
 	reporter := &Reporter{
 		cri: cri,
 	}
-
+	fmt.Println("report?")
 	return reporter
 }
 
@@ -38,6 +39,7 @@ func (r *Reporter) Report() (report.Report, error) {
 }
 
 func (r *Reporter) containerImageTopology() (report.Topology, error) {
+	fmt.Println("containerimagetopology...")
 	result := report.MakeTopology().
 		WithMetadataTemplates(docker.ContainerImageMetadataTemplates).
 		WithTableTemplates(docker.ContainerImageTableTemplates)
@@ -48,16 +50,32 @@ func (r *Reporter) containerImageTopology() (report.Topology, error) {
 	}
 
 	for _, c := range resp.Containers {
-		fmt.Println(c)
-		latests := map[string]string{
-			docker.ImageID:          c.ImageRef,
-			docker.ImageSize:        "10MB",
-			docker.ImageVirtualSize: "10MB",
-			docker.ImageName:        c.Image.Image,
-		}
-		nodeID := report.MakeContainerImageNodeID(latests[docker.ImageID])
-		node := report.MakeNodeWith(nodeID, latests)
-		result.AddNode(node)
+		/*	fmt.Println(c)
+			latests := map[string]string{
+				docker.ImageID:          c.ImageRef,
+				docker.ImageSize:        "10MB",
+				docker.ImageVirtualSize: "10MB",
+				docker.ImageName:        c.Image.Image,
+			}
+			nodeID := report.MakeContainerImageNodeID(latests[docker.ImageID])
+			node := report.MakeNodeWith(nodeID, latests)
+		*/
+		result.AddNode(getBaseNode(c))
 	}
 	return result, nil
+}
+
+func getBaseNode(c *criClient.Container) report.Node {
+	result := report.MakeNodeWith(report.MakeContainerNodeID(c.Id), map[string]string{
+		//docker.ContainerName:     c.Metadata.Name,
+		docker.ContainerID:       c.Id,
+		docker.ContainerCreated:  fmt.Sprintf("%v", c.CreatedAt),
+		docker.ContainerCommand:  "/bin/bash",
+		docker.ImageID:           c.ImageRef,
+		docker.ContainerHostname: "host",
+	}).WithParents(report.MakeSets().
+		Add(report.ContainerImage, report.MakeStringSet(report.MakeContainerImageNodeID(c.ImageRef))),
+	)
+	result = result.AddPrefixPropertyList(docker.LabelPrefix, c.Labels)
+	return result
 }
