@@ -226,8 +226,7 @@ items:
                 - '--weave=false'
                 - '--probe.kubernetes=false'
                 - '--probe.cri=true'
-                - "--probe.cri.endpoint=unix:///var/run/crio.sock"
-                - 'weave-scope-app.weave.svc.cluster.local:80'
+                - "--probe.cri.endpoint=unix:///var/run/crio/crio.sock"
               command:
                 - /home/weave/scope
               env:
@@ -242,7 +241,7 @@ items:
                 privileged: true
               volumeMounts:
                 - name: cri-endpoint
-                  mountPath: /var/run/crio.sock
+                  mountPath: /var/run/crio/crio.sock
                 - name: scope-plugins
                   mountPath: /var/run/scope/plugins
                 - name: sys-kernel-debug
