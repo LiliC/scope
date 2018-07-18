@@ -65,18 +65,18 @@ func parseEndpoint(endpoint string) (string, string, error) {
 }
 
 func NewCRIClient(endpoint string) (criClient.RuntimeServiceClient, error) {
-	if endpoint == "" {
-		// We default to docker endpoint
-		endpoint = "unix///var/run/dockershim.sock"
-	}
+	fmt.Println("endpoint:")
+	fmt.Println(endpoint)
 
 	// Dial grpc endpoint
 	addr, dailer, err := GetAddressAndDialer(endpoint)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithDialer(dailer))
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 

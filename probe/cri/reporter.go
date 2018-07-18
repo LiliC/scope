@@ -52,16 +52,6 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 	for _, c := range resp.Containers {
 		fmt.Println("container:")
 		fmt.Println(c)
-		/*
-			latests := map[string]string{
-					docker.ImageID:          c.ImageRef,
-					docker.ImageSize:        "10MB",
-					docker.ImageVirtualSize: "10MB",
-					docker.ImageName:        c.Image.Image,
-				}
-				nodeID := report.MakeContainerImageNodeID(latests[docker.ImageID])
-				node := report.MakeNodeWith(nodeID, latests)
-		*/
 		result.AddNode(getBaseNode(c))
 	}
 	fmt.Println("node result:")
@@ -71,12 +61,13 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 
 func getBaseNode(c *criClient.Container) report.Node {
 	result := report.MakeNodeWith(report.MakeContainerNodeID(c.Id), map[string]string{
-		//docker.ContainerName:     c.Metadata.Name,
-		docker.ContainerID:       c.Id,
-		docker.ContainerCreated:  fmt.Sprintf("%v", c.CreatedAt),
-		docker.ContainerCommand:  "/bin/bash",
-		docker.ImageID:           c.ImageRef,
-		docker.ContainerHostname: "host",
+		docker.ContainerName:         c.Metadata.Name,
+		docker.ContainerID:           c.Id,
+		docker.ContainerCreated:      fmt.Sprintf("%v", c.CreatedAt),
+		docker.ContainerState:        fmt.Sprintf("%v", c.State),
+		docker.ContainerRestartCount: fmt.Sprintf("%v", c.Metadata.Attempt),
+		docker.ImageID:               c.ImageRef,
+		docker.ImageName:             c.Image.Image,
 	}).WithParents(report.MakeSets().
 		Add(report.ContainerImage, report.MakeStringSet(report.MakeContainerImageNodeID(c.ImageRef))),
 	)
