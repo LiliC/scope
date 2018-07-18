@@ -153,7 +153,7 @@ items:
               command:
                 - /home/weave/scope
               env: []
-              image: 'docker.io/lilic/scope-cri:18'
+              image: 'docker.io/lilic/scope-cri:21'
               imagePullPolicy: IfNotPresent
               ports:
                 - containerPort: 4040
@@ -224,8 +224,8 @@ items:
                 - '--probe-only'
                 - '--probe.docker=false'
                 - '--weave=false'
-                - '--probe.kubernetes=false'
                 - '--probe.cri=true'
+                - '--probe.kubernetes=false'
                 - 'weave-scope-app.weave.svc.cluster.local:80'
               command:
                 - /home/weave/scope
@@ -235,7 +235,7 @@ items:
                     fieldRef:
                       apiVersion: v1
                       fieldPath: spec.nodeName
-              image: 'docker.io/lilic/scope-cri:18'
+              image: 'docker.io/lilic/scope-cri:21'
               imagePullPolicy: IfNotPresent
               securityContext:
                 privileged: true
