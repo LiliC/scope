@@ -29,17 +29,17 @@ func (Reporter) Name() string { return "CRI" }
 // Report generates a Report containing Container and ContainerImage topologies
 func (r *Reporter) Report() (report.Report, error) {
 	result := report.MakeReport()
-	imageTopology, err := r.containerImageTopology()
+	containerTopol, err := r.containerTopology()
 	if err != nil {
 		return report.MakeReport(), err
 	}
 
-	result.ContainerImage = result.ContainerImage.Merge(imageTopology)
+	result.Container = result.Container.Merge(containerTopol)
 	return result, nil
 }
 
-func (r *Reporter) containerImageTopology() (report.Topology, error) {
-	fmt.Println("containerimagetopology...")
+func (r *Reporter) containerTopology() (report.Topology, error) {
+	fmt.Println("container topology...")
 	result := report.MakeTopology().
 		WithMetadataTemplates(docker.ContainerImageMetadataTemplates).
 		WithTableTemplates(docker.ContainerImageTableTemplates)
@@ -50,18 +50,22 @@ func (r *Reporter) containerImageTopology() (report.Topology, error) {
 	}
 
 	for _, c := range resp.Containers {
-		/*	fmt.Println(c)
+		fmt.Println("container:")
+		fmt.Println(c)
+		/*
 			latests := map[string]string{
-				docker.ImageID:          c.ImageRef,
-				docker.ImageSize:        "10MB",
-				docker.ImageVirtualSize: "10MB",
-				docker.ImageName:        c.Image.Image,
-			}
-			nodeID := report.MakeContainerImageNodeID(latests[docker.ImageID])
-			node := report.MakeNodeWith(nodeID, latests)
+					docker.ImageID:          c.ImageRef,
+					docker.ImageSize:        "10MB",
+					docker.ImageVirtualSize: "10MB",
+					docker.ImageName:        c.Image.Image,
+				}
+				nodeID := report.MakeContainerImageNodeID(latests[docker.ImageID])
+				node := report.MakeNodeWith(nodeID, latests)
 		*/
 		result.AddNode(getBaseNode(c))
 	}
+	fmt.Println("node result:")
+	fmt.Println(result)
 	return result, nil
 }
 
