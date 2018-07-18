@@ -149,10 +149,11 @@ items:
             - name: app
               args:
                 - '--mode=app'
+                - '--weave=false'
               command:
                 - /home/weave/scope
               env: []
-              image: 'lilic/scope-cri:10'
+              image: 'docker.io/lilic/scope-cri:18'
               imagePullPolicy: IfNotPresent
               ports:
                 - containerPort: 4040
@@ -234,7 +235,7 @@ items:
                     fieldRef:
                       apiVersion: v1
                       fieldPath: spec.nodeName
-              image: 'lilic/scope-cri:10'
+              image: 'docker.io/lilic/scope-cri:18'
               imagePullPolicy: IfNotPresent
               securityContext:
                 privileged: true
