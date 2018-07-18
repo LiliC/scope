@@ -264,7 +264,7 @@ func probeMain(flags probeFlags, targets []appclient.Target) {
 			}
 		*/
 
-		client, err := cri.NewCRIClient("unix///var/run/dockershim.sock")
+		client, err := cri.NewCRIClient(flags.criEndpoint)
 		if err != nil {
 			log.Errorf("CRI: failed to start registry: %v", err)
 		} else {

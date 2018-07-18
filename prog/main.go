@@ -120,7 +120,8 @@ type probeFlags struct {
 	dockerInterval time.Duration
 	dockerBridge   string
 
-	criEnabled bool
+	criEnabled  bool
+	criEndpoint string
 
 	kubernetesEnabled      bool
 	kubernetesNodeName     string
@@ -308,6 +309,7 @@ func setupFlags(flags *flags) {
 
 	// CRI
 	flag.BoolVar(&flags.probe.criEnabled, "probe.cri", true, "collect CRIr-related attributes for processes")
+	flag.StringVar(&flags.probe.criEndpoint, "probe.cri.endpoint", "unix///var/run/dockershim.sock", "The endpoint to connect to the CRI")
 
 	// K8s
 	flag.BoolVar(&flags.probe.kubernetesEnabled, "probe.kubernetes", false, "collect kubernetes-related attributes for containers")
