@@ -11,13 +11,15 @@ import (
 
 // Reporter generate Reports containing Container and ContainerImage topologies
 type Reporter struct {
-	cri client.RuntimeServiceClient
+	cri    client.RuntimeServiceClient
+	hostID string
 }
 
 // NewReporter makes a new Reporter
 func NewReporter(cri client.RuntimeServiceClient) *Reporter {
 	reporter := &Reporter{
-		cri: cri,
+		cri:    cri,
+		hostID: "minikube",
 	}
 
 	return reporter
@@ -38,6 +40,26 @@ func (r *Reporter) Report() (report.Report, error) {
 	return result, nil
 }
 
+func (r *Reporter) getIPs(containers []*client.Container) ([]string, error) {
+	ips := []string{}
+
+	for _, c := range containers {
+		fmt.Printf("imagespec.image: %#+v\n", c.Image.Image)
+		status, err := r.cri.PodSandboxStatus(context.TODO(), &client.PodSandboxStatusRequest{PodSandboxId: c.PodSandboxId, Verbose: true})
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+		fmt.Println("status: %#+v \n", status)
+		s := status.Status
+		fmt.Printf("status: %#+v \n", s)
+		fmt.Printf("network: %#+v \n", s.Network)
+		ips = append(ips, s.Network.Ip)
+	}
+
+	return ips, nil
+}
+
 func (r *Reporter) containerTopology() (report.Topology, error) {
 	result := report.MakeTopology().
 		WithMetadataTemplates(docker.ContainerImageMetadataTemplates).
@@ -52,8 +74,29 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 	for _, c := range resp.Containers {
 		result.AddNode(getNode(c))
 	}
+	node := report.Node{}
+	// Network info
+	hostNetworkInfo := report.MakeSets()
+	if hostIPs, err := r.getIPs(resp.Containers); err == nil {
+		// TODO: save hostID/nodeID?
+		hostIPsWithScopes := addScopeToIPs("foo", hostIPs)
+		hostNetworkInfo = hostNetworkInfo.
+			Add(docker.ContainerIPs, report.MakeStringSet(hostIPs...)).
+			Add(docker.ContainerIPsWithScopes, report.MakeStringSet(hostIPsWithScopes...))
+	}
+	node = node.WithSets(hostNetworkInfo)
+
+	result.AddNode(node)
 
 	return result, nil
+}
+
+func addScopeToIPs(hostID string, ips []string) []string {
+	ipsWithScopes := []string{}
+	for _, ip := range ips {
+		ipsWithScopes = append(ipsWithScopes, report.MakeAddressNodeID(hostID, ip))
+	}
+	return ipsWithScopes
 }
 
 func getNode(c *client.Container) report.Node {
