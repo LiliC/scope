@@ -40,22 +40,18 @@ func (r *Reporter) Report() (report.Report, error) {
 	return result, nil
 }
 
-func (r *Reporter) getIPs(containers []*client.Container) ([]string, error) {
+func (r *Reporter) getIPs(c *client.Container) ([]string, error) {
 	ips := []string{}
 
-	for _, c := range containers {
-		fmt.Printf("imagespec.image: %#+v\n", c.Image.Image)
-		status, err := r.cri.PodSandboxStatus(context.TODO(), &client.PodSandboxStatusRequest{PodSandboxId: c.PodSandboxId, Verbose: true})
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-		fmt.Println("status: %#+v \n", status)
-		s := status.Status
-		fmt.Printf("status: %#+v \n", s)
-		fmt.Printf("network: %#+v \n", s.Network)
-		ips = append(ips, s.Network.Ip)
+	status, err := r.cri.PodSandboxStatus(context.TODO(), &client.PodSandboxStatusRequest{PodSandboxId: c.PodSandboxId, Verbose: true})
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
 	}
+	s := status.Status
+	ips = append(ips, s.Network.Ip)
+	fmt.Println("ips:")
+	fmt.Println(ips)
 
 	return ips, nil
 }
@@ -71,22 +67,28 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 		return result, err
 	}
 
-	for _, c := range resp.Containers {
-		result.AddNode(getNode(c))
-	}
-	node := report.Node{}
-	// Network info
+	nodes := []report.Node{}
 	hostNetworkInfo := report.MakeSets()
-	if hostIPs, err := r.getIPs(resp.Containers); err == nil {
-		// TODO: save hostID/nodeID?
-		hostIPsWithScopes := addScopeToIPs("foo", hostIPs)
-		hostNetworkInfo = hostNetworkInfo.
-			Add(docker.ContainerIPs, report.MakeStringSet(hostIPs...)).
-			Add(docker.ContainerIPsWithScopes, report.MakeStringSet(hostIPsWithScopes...))
+	for _, c := range resp.Containers {
+		node := getNode(c)
+		if hostIPs, err := r.getIPs(c); err == nil {
+			// TODO: save hostID/nodeID?
+			hostIPsWithScopes := addScopeToIPs(r.hostID, hostIPs)
+			hostNetworkInfo = hostNetworkInfo.
+				Add(docker.ContainerIPs, report.MakeStringSet(hostIPs...)).
+				Add(docker.ContainerIPsWithScopes, report.MakeStringSet(hostIPsWithScopes...))
+		}
+		node = node.WithSets(hostNetworkInfo)
+		nodes = append(nodes, node)
 	}
-	node = node.WithSets(hostNetworkInfo)
+	// Network info
 
-	result.AddNode(node)
+	for _, node := range nodes {
+		result.AddNode(node)
+	}
+
+	fmt.Println(result)
+	fmt.Printf("%#+v\n", result)
 
 	return result, nil
 }
