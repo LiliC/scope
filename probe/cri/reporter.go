@@ -31,12 +31,18 @@ func (Reporter) Name() string { return "CRI" }
 // Report generates a Report containing Container topologies
 func (r *Reporter) Report() (report.Report, error) {
 	result := report.MakeReport()
-	containerTopol, err := r.containerTopology()
+	cImageTopology, err := r.containerImageTopology()
 	if err != nil {
 		return report.MakeReport(), err
 	}
 
-	result.Container = result.Container.Merge(containerTopol)
+	cTopology, err := r.containerTopology()
+	if err != nil {
+		return report.MakeReport(), err
+	}
+
+	result.Container = result.ContainerImage.Merge(cImageTopology)
+	result.Container = result.Container.Merge(cTopology)
 	return result, nil
 }
 
@@ -56,7 +62,7 @@ func (r *Reporter) getIPs(c *client.Container) ([]string, error) {
 	return ips, nil
 }
 
-func (r *Reporter) containerTopology() (report.Topology, error) {
+func (r *Reporter) containerImageTopology() (report.Topology, error) {
 	result := report.MakeTopology().
 		WithMetadataTemplates(docker.ContainerImageMetadataTemplates).
 		WithTableTemplates(docker.ContainerImageTableTemplates)
@@ -67,10 +73,29 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 		return result, err
 	}
 
-	nodes := []report.Node{}
-	hostNetworkInfo := report.MakeSets()
 	for _, c := range resp.Containers {
 		node := getNode(c)
+		result.AddNode(node)
+	}
+
+	return result, nil
+}
+func (r *Reporter) containerTopology() (report.Topology, error) {
+	result := report.MakeTopology().
+		WithMetadataTemplates(docker.ContainerMetadataTemplates).
+		WithMetricTemplates(docker.ContainerMetricTemplates).
+		WithTableTemplates(docker.ContainerTableTemplates)
+	result.Controls.AddControls(docker.ContainerControls)
+
+	ctx := context.Background()
+	resp, err := r.cri.ListContainers(ctx, &client.ListContainersRequest{})
+	if err != nil {
+		return result, err
+	}
+
+	node := report.Node{}
+	hostNetworkInfo := report.MakeSets()
+	for _, c := range resp.Containers {
 		if hostIPs, err := r.getIPs(c); err == nil {
 			// TODO: save hostID/nodeID?
 			hostIPsWithScopes := addScopeToIPs(r.hostID, hostIPs)
@@ -79,11 +104,6 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 				Add(docker.ContainerIPsWithScopes, report.MakeStringSet(hostIPsWithScopes...))
 		}
 		node = node.WithSets(hostNetworkInfo)
-		nodes = append(nodes, node)
-	}
-	// Network info
-
-	for _, node := range nodes {
 		result.AddNode(node)
 	}
 
