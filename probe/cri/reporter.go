@@ -74,7 +74,12 @@ func (r *Reporter) containerImageTopology() (report.Topology, error) {
 	}
 
 	for _, c := range resp.Containers {
-		node := getNode(c)
+		latests := map[string]string{
+			docker.ImageID:   c.ImageRef,
+			docker.ImageName: c.Image.Image,
+		}
+		nodeID := report.MakeContainerImageNodeID(c.ImageRef)
+		node := report.MakeNodeWith(nodeID, latests)
 		result.AddNode(node)
 	}
 
@@ -103,6 +108,8 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 				Add(docker.ContainerIPs, report.MakeStringSet(hostIPs...)).
 				Add(docker.ContainerIPsWithScopes, report.MakeStringSet(hostIPsWithScopes...))
 		}
+		nodeID := report.MakeContainerImageNodeID(c.ImageRef)
+		node := node.WithID(nodeID)
 		node = node.WithSets(hostNetworkInfo)
 		result.AddNode(node)
 	}
