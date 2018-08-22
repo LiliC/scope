@@ -18,7 +18,8 @@ type Reporter struct {
 // NewReporter makes a new Reporter
 func NewReporter(cri client.RuntimeServiceClient) *Reporter {
 	reporter := &Reporter{
-		cri:    cri,
+		cri: cri,
+		// TODO: get host ID from CRI?
 		hostID: "minikube",
 	}
 
@@ -43,6 +44,8 @@ func (r *Reporter) Report() (report.Report, error) {
 
 	result.Container = result.ContainerImage.Merge(cImageTopology)
 	result.Container = result.Container.Merge(cTopology)
+	//result.Overlay = result.Overlay.Merge(r.overlayTopology())
+
 	return result, nil
 }
 
@@ -62,6 +65,7 @@ func (r *Reporter) getIPs(c *client.Container) ([]string, error) {
 	return ips, nil
 }
 
+// This gets us the basic image information.
 func (r *Reporter) containerImageTopology() (report.Topology, error) {
 	result := report.MakeTopology().
 		WithMetadataTemplates(docker.ContainerImageMetadataTemplates).
@@ -85,6 +89,8 @@ func (r *Reporter) containerImageTopology() (report.Topology, error) {
 
 	return result, nil
 }
+
+// This gets us container information
 func (r *Reporter) containerTopology() (report.Topology, error) {
 	result := report.MakeTopology().
 		WithMetadataTemplates(docker.ContainerMetadataTemplates).
@@ -98,18 +104,22 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 		return result, err
 	}
 
-	node := report.Node{}
 	hostNetworkInfo := report.MakeSets()
 	for _, c := range resp.Containers {
 		if hostIPs, err := r.getIPs(c); err == nil {
-			// TODO: save hostID/nodeID?
 			hostIPsWithScopes := addScopeToIPs(r.hostID, hostIPs)
 			hostNetworkInfo = hostNetworkInfo.
 				Add(docker.ContainerIPs, report.MakeStringSet(hostIPs...)).
 				Add(docker.ContainerIPsWithScopes, report.MakeStringSet(hostIPsWithScopes...))
 		}
+		latests := map[string]string{
+			docker.ContainerName:         c.Metadata.Name,
+			docker.ContainerID:           c.Id,
+			docker.ContainerState:        fmt.Sprintf("%v", c.State),
+			docker.ContainerRestartCount: fmt.Sprintf("%v", c.Metadata.Attempt),
+		}
 		nodeID := report.MakeContainerImageNodeID(c.ImageRef)
-		node := node.WithID(nodeID)
+		node := report.MakeNodeWith(nodeID, latests)
 		node = node.WithSets(hostNetworkInfo)
 		result.AddNode(node)
 	}
@@ -120,26 +130,19 @@ func (r *Reporter) containerTopology() (report.Topology, error) {
 	return result, nil
 }
 
+// This should get us the overlay edges:
+// Overlay nodes are active peers in any software-defined network that's overlaid on the infrastructure.
+// The information is scraped by polling their status endpoints. Edges are present.
+/*
+func (r *Reporter) overlayTopology() report.Topology {
+	// TODO: get subnets?
+}
+*/
+
 func addScopeToIPs(hostID string, ips []string) []string {
 	ipsWithScopes := []string{}
 	for _, ip := range ips {
 		ipsWithScopes = append(ipsWithScopes, report.MakeAddressNodeID(hostID, ip))
 	}
 	return ipsWithScopes
-}
-
-func getNode(c *client.Container) report.Node {
-	result := report.MakeNodeWith(report.MakeContainerNodeID(c.Id), map[string]string{
-		docker.ContainerName:         c.Metadata.Name,
-		docker.ContainerID:           c.Id,
-		docker.ContainerState:        fmt.Sprintf("%v", c.State),
-		docker.ContainerRestartCount: fmt.Sprintf("%v", c.Metadata.Attempt),
-		docker.ImageID:               c.ImageRef,
-		docker.ImageName:             c.Image.Image,
-	}).WithParents(report.MakeSets().
-		Add(report.ContainerImage, report.MakeStringSet(report.MakeContainerImageNodeID(c.ImageRef))),
-	)
-	result = result.AddPrefixPropertyList(docker.LabelPrefix, c.Labels)
-
-	return result
 }
